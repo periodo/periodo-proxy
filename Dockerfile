@@ -3,7 +3,6 @@ FROM --platform=linux/amd64 nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 RUN mkdir /srv/www
-RUN mkdir /srv/www/client_packages
 
 COPY vocab.ttl /srv/www/vocab.ttl
 COPY vocab.html /srv/www/vocab.html

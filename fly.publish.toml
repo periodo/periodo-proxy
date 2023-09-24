@@ -1,8 +1,3 @@
-# fly.toml app configuration file generated for periodo-proxy on 2023-09-12T20:59:47-04:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
 app = "periodo-proxy"
 primary_region = "iad"
 

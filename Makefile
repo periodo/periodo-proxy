@@ -2,7 +2,6 @@ HIGHLIGHT_THEMES := /opt/homebrew/share/highlight/themes/
 
 VOCAB_FILES := $(shell find vocab -name '*.ttl')
 SHAPE_FILES := $(shell find shapes -name '*.ttl')
-SERVER_VERSION := $(shell git describe --exact-match --tags 2> /dev/null || git rev-parse --short HEAD)
 
 .PHONY: all clean stage publish
 
@@ -38,5 +37,4 @@ stage publish: clean vocab.html nginx.conf
 
 nginx.conf: nginx.template.conf
 	UPSTREAM_HOST=$(UPSTREAM_HOST) \
-	SERVER_VERSION=$(SERVER_VERSION) \
-	envsubst '$$UPSTREAM_HOST $$SERVER_VERSION' < $< > $@
+	envsubst '$$UPSTREAM_HOST' < $< > $@

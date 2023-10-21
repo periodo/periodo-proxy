@@ -1,10 +1,14 @@
 import os
 import json
+import shutil
 import socket
 import sys
 from hashlib import md5
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, HTTPServer
+
+
+CACHE_DIR = "/mnt/cache"
 
 
 class CachePurgeException(Exception):
@@ -20,15 +24,19 @@ class handler(BaseHTTPRequestHandler):
         try:
             check_headers(self.headers)
             content_length = int(self.headers.get("Content-Length", "0"))
-            body = self.rfile.read(content_length)
-            keys = json.loads(body)
-            if isinstance(keys, list):
-                purge(keys)
+            if content_length == 0:
+                purgeEverything()
                 self.send_response(HTTPStatus.OK, "Purge succeeded")
             else:
-                self.send_error(
-                    HTTPStatus.BAD_REQUEST, "Missing array of keys to purge"
-                )
+                body = self.rfile.read(content_length)
+                keys = json.loads(body)
+                if isinstance(keys, list):
+                    purge(keys)
+                    self.send_response(HTTPStatus.OK, "Purge succeeded")
+                else:
+                    self.send_error(
+                        HTTPStatus.BAD_REQUEST, "Missing array of keys to purge"
+                    )
         except CachePurgeException as e:
             self.send_response(HTTPStatus.BAD_REQUEST, str(e))
         except json.JSONDecodeError:
@@ -53,7 +61,7 @@ def purge(keys: list[str]) -> None:
     for key in keys:
         filename = md5(key.encode("utf-8")).hexdigest()
         path = os.path.join(  # because nginx cache_path levels=1:2
-            "/mnt/cache", filename[-1], filename[-3:-1], filename
+            CACHE_DIR, filename[-1], filename[-3:-1], filename
         )
         try:
             if os.path.isfile(path):
@@ -61,6 +69,21 @@ def purge(keys: list[str]) -> None:
                 log(f"Purged {key}")
         except OSError as e:
             log(f"Failed to purge {key}: {e}")
+            raise CachePurgeException("Purge failed") from e
+
+
+def purgeEverything() -> None:
+    for filename in os.listdir(CACHE_DIR):
+        if filename == "lost+found":
+            continue
+        file_path = os.path.join(CACHE_DIR, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            log(f"Failed to purge entire cache: {e}")
             raise CachePurgeException("Purge failed") from e
 
 

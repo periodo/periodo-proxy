@@ -3,7 +3,7 @@ HIGHLIGHT_THEMES := /opt/homebrew/share/highlight/themes/
 VOCAB_FILES := $(shell find vocab -name '*.ttl')
 SHAPE_FILES := $(shell find shapes -name '*.ttl')
 
-.PHONY: all clean stage publish
+.PHONY: all clean stage publish purge purge-published
 
 all: vocab.html
 
@@ -34,6 +34,15 @@ publish: UPSTREAM_HOST = periodo-server.flycast
 
 stage publish: clean vocab.html nginx.conf
 	fly deploy --config $(APP_CONFIG)
+
+purge: CACHE_PURGER = http://periodo-proxy-dev.internal:8081
+purge-published: CACHE_PURGER = http://periodo-proxy.internal:8081
+
+purge purge-published:
+	curl -i -X POST \
+	-H "Content-Type: application/json" \
+	-H "Content-Length: 0" \
+	$(CACHE_PURGER)
 
 nginx.conf: nginx.template.conf
 	UPSTREAM_HOST=$(UPSTREAM_HOST) \
